@@ -99,7 +99,7 @@ def getBeijinTime():
                 # print(msg_mi)
         try:
             pushUrl = "https://www.pushplus.plus/send/"
-            title = datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " 刷步数通知"
+            title = now + " 刷步数通知"
             data = {
                 "token": sys.argv[5],
                 "title": title,
