@@ -196,7 +196,10 @@ def login(user, password):
 def main(_user, _passwd, min_1, max_1):
     user = str(_user)
     password = str(_passwd)
-    step = str(random.randint(min_1, max_1))
+    if user == '935289832':
+        step = str(random.randint(18000, 25000))
+    else:
+        step = str(random.randint(min_1, max_1))
     print("已设置为随机步数(" + str(min_1) + "~" + str(max_1) + ")")
     if user == '' or password == '':
         print("用户名或密码填写有误！")
