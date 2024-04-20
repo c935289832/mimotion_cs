@@ -196,7 +196,7 @@ def login(user, password):
 def main(_user, _passwd, min_1, max_1):
     user = str(_user)
     password = str(_passwd)
-    if user == '935289832':
+    if user == '935289832@qq.com':
         step = str(random.randint(18000, 25000))
     else:
         step = str(random.randint(min_1, max_1))
