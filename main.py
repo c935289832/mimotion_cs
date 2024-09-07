@@ -6,7 +6,9 @@ import random
 import re
 import sys
 import time
+import pytz
 from urllib.parse import urlencode
+from datetime import datetime
 
 import requests
 
@@ -239,10 +241,14 @@ def main(_user, _passwd, min_1, max_1):
 
 # 获取时间戳
 def get_time():
-    url = 'http://api.m.taobao.com/rest/api3.do?api=mtop.common.getTimestamp'
-    response = requests.get(url, headers=headers).json()
-    t = response['data']['t']
-    return t
+    # url = 'http://api.m.taobao.com/rest/api3.do?api=mtop.common.getTimestamp'
+    # response = requests.get(url, headers=headers).json()
+    # t = response['data']['t']
+    # return t
+    tz = pytz.timezone('Asia/Shanghai')
+    china_time = datetime.now(tz)
+    timestamp = int(china_time.timestamp())
+    return timestamp
 
 
 # 获取app_token
