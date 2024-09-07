@@ -239,9 +239,10 @@ def main(_user, _passwd, min_1, max_1):
 
 # 获取时间戳
 def get_time():
-    url = 'http://api.m.taobao.com/rest/api3.do?api=mtop.common.getTimestamp'
+    url = 'http://worldtimeapi.org/api/timezone/Asia/Shanghai'  # 替换为上海时区
+    headers = {"User-Agent": "Mozilla/5.0"}
     response = requests.get(url, headers=headers).json()
-    t = response['data']['t']
+    t = response['unixtime']  # 使用时间戳
     return t
 
 
