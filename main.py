@@ -239,10 +239,10 @@ def main(_user, _passwd, min_1, max_1):
 
 # 获取时间戳
 def get_time():
-    url = 'http://worldtimeapi.org/api/timezone/Asia/Shanghai'  # 替换为上海时区
+    url = 'http://api.pinduoduo.com/api/server/_stm'  # 替换为上海时区
     headers = {"User-Agent": "Mozilla/5.0"}
     response = requests.get(url, headers=headers).json()
-    t = response['unixtime']  # 使用时间戳
+    t = response['server_time']  # 使用时间戳
     return t
 
 
