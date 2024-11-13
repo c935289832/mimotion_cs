@@ -239,11 +239,19 @@ def main(_user, _passwd, min_1, max_1):
 
 # 获取时间戳
 def get_time():
-    url = 'http://api.pinduoduo.com/api/server/_stm'  # 替换为上海时区
+    url = 'https://api.pinduoduo.com/api/server/_stm'  # 确保URL是正确的，并且没有HTML实体字符
     headers = {"User-Agent": "Mozilla/5.0"}
-    response = requests.get(url, headers=headers).json()
-    t = response['server_time']  # 使用时间戳
-    return t
+    response = requests.get(url, headers=headers)
+    
+    # 确保请求成功
+    if response.status_code == 200:
+        response_data = response.json()
+        t = response_data['server_time']  # 使用时间戳
+        print(response_data)  # 打印整个响应内容
+        return t
+    else:
+        print("请求失败，状态码：", response.status_code)
+        return None
 
 
 # 获取app_token
