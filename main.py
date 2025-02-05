@@ -77,8 +77,8 @@ def getBeijinTime():
         hour = find.group(1)
         min_ratio = max(math.ceil((int(hour) / 3) - 1), 0)
         max_ratio = math.ceil(int(hour) / 3)
-        min_1 = 3000 * min_ratio
-        max_1 = 3000 * max_ratio
+        min_1 = 4000 * min_ratio
+        max_1 = 4000 * max_ratio
         min_1 = int(K * min_1)
         max_1 = int(K * max_1)
     else:
@@ -99,20 +99,20 @@ def getBeijinTime():
                 msg_mi += main(user_mi, passwd_mi, min_1, max_1)
                 # print(msg_mi)
         try:
-                pushUrl = "https://www.pushplus.plus/send/"
-                title = now + " 刷步数通知"
-                data = {
-                    "token": sys.argv[5],
-                    "title": title,
-                    "content": msg_mi,
-                    "template": "html",
-                    "channel": "wechat"
-                }
-                headers = {"Content-Type": "application/x-www-form-urlencoded"}
-                result = requests.post(pushUrl, data=urlencode(data), headers=headers).text
-                print(result)
-            except Exception as e:
-                print("error", e)
+            pushUrl = "https://www.pushplus.plus/send/"
+            title = now + " 刷步数通知"
+            data = {
+                "token": sys.argv[5],
+                "title": title,
+                "content": msg_mi,
+                "template": "html",
+                "channel": "wechat"
+            }
+            headers = {"Content-Type": "application/x-www-form-urlencoded"}
+            result = requests.post(pushUrl, data=urlencode(data), headers=headers).text
+            print(result)
+        except Exception as e:
+            print("error", e)
     else:
         print("当前主人设置了0步数呢，本次不提交")
         return
