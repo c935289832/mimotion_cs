@@ -6,6 +6,7 @@ import random
 import re
 import sys
 import time
+from urllib.parse import urlencode
 
 import requests
 
@@ -97,6 +98,21 @@ def getBeijinTime():
             for user_mi, passwd_mi in zip(user_list, passwd_list):
                 msg_mi += main(user_mi, passwd_mi, min_1, max_1)
                 # print(msg_mi)
+    try:
+            pushUrl = "https://www.pushplus.plus/send/"
+            title = now + " 刷步数通知"
+            data = {
+                "token": sys.argv[5],
+                "title": title,
+                "content": msg_mi,
+                "template": "html",
+                "channel": "wechat"
+            }
+            headers = {"Content-Type": "application/x-www-form-urlencoded"}
+            result = requests.post(pushUrl, data=urlencode(data), headers=headers).text
+            print(result)
+        except Exception as e:
+            print("error", e)
     else:
         print("当前主人设置了0步数呢，本次不提交")
         return
@@ -180,7 +196,10 @@ def login(user, password):
 def main(_user, _passwd, min_1, max_1):
     user = str(_user)
     password = str(_passwd)
-    step = str(random.randint(min_1, max_1))
+    if user == '935289832@qq.com':
+        step = str(random.randint(18000, 25000))
+    else:
+        step = str(random.randint(min_1, max_1))
     print("已设置为随机步数(" + str(min_1) + "~" + str(max_1) + ")")
     if user == '' or password == '':
         print("用户名或密码填写有误！")
@@ -220,10 +239,19 @@ def main(_user, _passwd, min_1, max_1):
 
 # 获取时间戳
 def get_time():
-    url = 'http://api.m.taobao.com/rest/api3.do?api=mtop.common.getTimestamp'
-    response = requests.get(url, headers=headers).json()
-    t = response['data']['t']
-    return t
+    url = 'https://api.pinduoduo.com/api/server/_stm'  # 确保URL是正确的，并且没有HTML实体字符
+    headers = {"User-Agent": "Mozilla/5.0"}
+    response = requests.get(url, headers=headers)
+
+    # 确保请求成功
+    if response.status_code == 200:
+        response_data = response.json()
+        t = response_data['server_time']  # 使用时间戳
+        print(response_data)  # 打印整个响应内容
+        return t
+    else:
+        print("请求失败，状态码：", response.status_code)
+        return None
 
 
 # 获取app_token
