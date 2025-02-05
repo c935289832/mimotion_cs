@@ -98,21 +98,21 @@ def getBeijinTime():
             for user_mi, passwd_mi in zip(user_list, passwd_list):
                 msg_mi += main(user_mi, passwd_mi, min_1, max_1)
                 # print(msg_mi)
-    try:
-            pushUrl = "https://www.pushplus.plus/send/"
-            title = now + " 刷步数通知"
-            data = {
-                "token": sys.argv[5],
-                "title": title,
-                "content": msg_mi,
-                "template": "html",
-                "channel": "wechat"
-            }
-            headers = {"Content-Type": "application/x-www-form-urlencoded"}
-            result = requests.post(pushUrl, data=urlencode(data), headers=headers).text
-            print(result)
-        except Exception as e:
-            print("error", e)
+        try:
+                pushUrl = "https://www.pushplus.plus/send/"
+                title = now + " 刷步数通知"
+                data = {
+                    "token": sys.argv[5],
+                    "title": title,
+                    "content": msg_mi,
+                    "template": "html",
+                    "channel": "wechat"
+                }
+                headers = {"Content-Type": "application/x-www-form-urlencoded"}
+                result = requests.post(pushUrl, data=urlencode(data), headers=headers).text
+                print(result)
+            except Exception as e:
+                print("error", e)
     else:
         print("当前主人设置了0步数呢，本次不提交")
         return
