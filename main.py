@@ -88,15 +88,17 @@ def getBeijinTime():
         user_mi = sys.argv[1]
         # 登录密码
         passwd_mi = sys.argv[2]
+        access_mi = sys.argv[6]
         user_list = user_mi.split('#')
         passwd_list = passwd_mi.split('#')
-        if len(user_list) == len(passwd_list):
+        access_list = access_mi.split('#')
+        if len(user_list) == len(passwd_list) && len(user_list) == len(access_list):
             if K != 1.0:
                 msg_mi = "由于天气" + type + "，已设置降低步数,系数为" + str(K) + "。\n"
             else:
                 msg_mi = ""
-            for user_mi, passwd_mi in zip(user_list, passwd_list):
-                msg_mi += main(user_mi, passwd_mi, min_1, max_1)
+            for user_mi, passwd_mi, access_mi in zip(user_list, passwd_list, access_list):
+                msg_mi += main(user_mi, passwd_mi, access_mi, min_1, max_1)
                 # print(msg_mi)
         try:
             pushUrl = "https://www.pushplus.plus/send/"
@@ -117,48 +119,19 @@ def getBeijinTime():
         print("当前主人设置了0步数呢，本次不提交")
         return
 
-
-# 获取登录code
-def get_code(location):
-    code_pattern = re.compile("(?<=access=).*?(?=&)")
-    code = code_pattern.findall(location)[0]
-    return code
-
-
 # 登录
-def login(user, password):
+def login(user, password, access):
     is_phone = False
     if re.match(r'\d{11}', user):
         is_phone = True
-    if is_phone:
-        url1 = "https://api-user.zepp.com/v2/registrations/+86" + user + "/tokens"
-    else:
-        url1 = "https://api-user.zepp.com/v2/registrations/" + user + "/tokens"
+    
     headers = {
         "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
         "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 14_7_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.2"
     }
-    data1 = {
-        "client_id": "HuaMi",
-        "password": f"{password}",
-        "redirect_uri": "https://s3-us-west-2.amazonaws.com/hm-registration/successsignin.html",
-        "token": "access"
-    }
-    r1 = requests.post(url1, data=data1, headers=headers, allow_redirects=False)
     
-    # --- 新增的调试代码 ---
-    print("Status Code:", r1.status_code)
-    print("Response Headers:", r1.headers)
-    print("Response Body:", r1.text)
-
-    if 'Location' not in r1.headers:
-        print("登录失败，响应头中没有找到 'Location'。请检查您的用户名和密码，或可能是API已更新。")
-        return 0, 0
-    # --- 调试代码结束 ---
-    
-    location = r1.headers["Location"]
     try:
-        code = get_code(location)
+        code = access
     except:
         return 0, 0
     # print("access_code获取成功！")
@@ -204,9 +177,10 @@ def login(user, password):
 
 
 # 主函数
-def main(_user, _passwd, min_1, max_1):
+def main(_user, _passwd, _access, min_1, max_1):
     user = str(_user)
     password = str(_passwd)
+    access = str(_access)
     if user == '935289832@qq.com':
         step = str(random.randint(18000, 25000))
     else:
@@ -215,7 +189,7 @@ def main(_user, _passwd, min_1, max_1):
     if user == '' or password == '':
         print("用户名或密码填写有误！")
         return
-    login_token, userid = login(user, password)
+    login_token, userid = login(user, password, access)
     if login_token == 0:
         print("登陆失败！")
         return "login fail!"
