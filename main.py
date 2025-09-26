@@ -145,6 +145,17 @@ def login(user, password):
         "token": "access"
     }
     r1 = requests.post(url1, data=data1, headers=headers, allow_redirects=False)
+    
+    # --- 新增的调试代码 ---
+    print("Status Code:", r1.status_code)
+    print("Response Headers:", r1.headers)
+    print("Response Body:", r1.text)
+
+    if 'Location' not in r1.headers:
+        print("登录失败，响应头中没有找到 'Location'。请检查您的用户名和密码，或可能是API已更新。")
+        return 0, 0
+    # --- 调试代码结束 ---
+    
     location = r1.headers["Location"]
     try:
         code = get_code(location)
