@@ -35,4 +35,5 @@ jobs:
           open_get_weather='${{ secrets.OPEN_GET_WEATHER }}'
           area='${{ secrets.AREA }}'
           token='${{ secrets.TOKEN }}'
-          python3 main.py ${user} ${passwd} ${open_get_weather} ${area} ${token}
+          access='${{ secrets.ACCESS }}'
+          python3 main.py ${user} ${passwd} ${open_get_weather} ${area} ${token} ${access}
