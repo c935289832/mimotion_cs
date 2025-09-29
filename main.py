@@ -88,17 +88,15 @@ def getBeijinTime():
         user_mi = sys.argv[1]
         # 登录密码
         passwd_mi = sys.argv[2]
-        access_mi = sys.argv[6]
         user_list = user_mi.split('#')
         passwd_list = passwd_mi.split('#')
-        access_list = access_mi.split('#')
-        if len(user_list) == len(passwd_list) and len(user_list) == len(access_list):
+        if len(user_list) == len(passwd_list):
             if K != 1.0:
                 msg_mi = "由于天气" + type + "，已设置降低步数,系数为" + str(K) + "。\n"
             else:
                 msg_mi = ""
-            for user_mi, passwd_mi, access_mi in zip(user_list, passwd_list, access_list):
-                msg_mi += main(user_mi, passwd_mi, access_mi, min_1, max_1)
+            for user_mi, passwd_mi in zip(user_list, passwd_list):
+                msg_mi += main(user_mi, passwd_mi, min_1, max_1)
                 # print(msg_mi)
         try:
             pushUrl = "https://www.pushplus.plus/send/"
@@ -120,24 +118,36 @@ def getBeijinTime():
         return
 
 # 登录
-def login(user, password, access):
+def login(user, password):
     is_phone = False
     if re.match(r'\d{11}', user):
         is_phone = True
     
     headers = {
         "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-        "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 14_7_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.2"
+        "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 14_7_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.2",
+        "app_name": "com.xiaomi.hm.health",
     }
     
-    try:
-        code = access
-    except:
-        return 0, 0
-    # print("access_code获取成功！")
-    # print(code)
+    url1 = "https://api-user.huami.com/registrations/" + uu + "/tokens"
+    data1 = f"client_id=HuaMi&country_code=CN&json_response=true&name={uu}&password={pwd}&redirect_uri=https://s3-us-west-2.amazonaws.com/hm-registration/successsignin.html&state=REDIRECTION&token=access"
+    res1 = requests.post(url1, data=data1, headers=headers)
+    
+    if res1.status_code == 200:
+        res1 = res1.json()
+        if "access" in res1:
+            code = res1["access"]
+        else:
+            print(f"------ 用户名或密码错误，请变更后再试 ------")
+            return
+    elif res1.status_code == 429:
+        print(f"------ 请求过于频繁，请变更IP或稍后再试 ------")
+        return
+    else:
+        print(f"------ Access Code：{res1.status_code}，账号登录失败 ------")
+        return
 
-    url2 = "https://account-cn.huami.com/v2/client/login"
+    url2 = "https://account.huami.com/v2/client/login"
     if is_phone:
         data2 = {
             "app_name": "com.xiaomi.hm.health",
@@ -177,10 +187,9 @@ def login(user, password, access):
 
 
 # 主函数
-def main(_user, _passwd, _access, min_1, max_1):
+def main(_user, _passwd, min_1, max_1):
     user = str(_user)
     password = str(_passwd)
-    access = str(_access)
     if user == '935289832@qq.com':
         step = str(random.randint(18000, 25000))
     else:
@@ -189,7 +198,7 @@ def main(_user, _passwd, _access, min_1, max_1):
     if user == '' or password == '':
         print("用户名或密码填写有误！")
         return
-    login_token, userid = login(user, password, access)
+    login_token, userid = login(user, password)
     if login_token == 0:
         print("登陆失败！")
         return "login fail!"
