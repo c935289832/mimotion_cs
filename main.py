@@ -117,16 +117,25 @@ def getBeijinTime():
         print("当前主人设置了0步数呢，本次不提交")
         return
 
+# 虚拟ip地址
+def fake_ip():
+    # 随便找的国内IP段：223.64.0.0 - 223.117.255.255
+    return f"{223}.{random.randint(64, 117)}.{random.randint(0, 255)}.{random.randint(0, 255)}"
+
 # 登录
 def login(user, password):
     is_phone = False
     if re.match(r'\d{11}', user):
         is_phone = True
+
+    fake_ip_addr = fake_ip()
+    print(f"创建虚拟ip地址：{fake_ip_addr}\n")
     
     headers = {
         "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
         "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 14_7_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.2",
         "app_name": "com.xiaomi.hm.health",
+        "X-Forwarded-For": fake_ip_addr
     }
     
     url1 = "https://api-user.huami.com/registrations/" + user + "/tokens"
