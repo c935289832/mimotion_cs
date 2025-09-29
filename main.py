@@ -129,8 +129,8 @@ def login(user, password):
         "app_name": "com.xiaomi.hm.health",
     }
     
-    url1 = "https://api-user.huami.com/registrations/" + uu + "/tokens"
-    data1 = f"client_id=HuaMi&country_code=CN&json_response=true&name={uu}&password={pwd}&redirect_uri=https://s3-us-west-2.amazonaws.com/hm-registration/successsignin.html&state=REDIRECTION&token=access"
+    url1 = "https://api-user.huami.com/registrations/" + user + "/tokens"
+    data1 = f"client_id=HuaMi&country_code=CN&json_response=true&name={user}&password={password}&redirect_uri=https://s3-us-west-2.amazonaws.com/hm-registration/successsignin.html&state=REDIRECTION&token=access"
     res1 = requests.post(url1, data=data1, headers=headers)
     
     if res1.status_code == 200:
