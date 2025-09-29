@@ -140,6 +140,11 @@ def login(user, password):
     
     url1 = "https://api-user.huami.com/registrations/" + user + "/tokens"
     data1 = f"client_id=HuaMi&country_code=CN&json_response=true&name={user}&password={password}&redirect_uri=https://s3-us-west-2.amazonaws.com/hm-registration/successsignin.html&state=REDIRECTION&token=access"
+    
+    # 在发送请求前设置10秒延迟
+    print("等待10秒后发送请求...")
+    time.sleep(10)
+    
     res1 = requests.post(url1, data=data1, headers=headers)
     
     if res1.status_code == 200:
