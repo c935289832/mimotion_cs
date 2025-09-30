@@ -96,7 +96,7 @@ def getBeijinTime():
                 "contentType": 2,
                 "uids": [sys.argv[7]]
             }
-            headers_push = {"Content-Type": "application/x-www-form-urlencoded"}
+            headers_push = {"Content-Type": "application/json"}
             result = requests.post(pushUrl, data=urlencode(data), headers=headers_push).text
             print(result)
         except Exception as e:
