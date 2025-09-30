@@ -34,6 +34,7 @@ jobs:
           passwd='${{ secrets.PWD }}' 
           open_get_weather='${{ secrets.OPEN_GET_WEATHER }}'
           area='${{ secrets.AREA }}'
-          token='${{ secrets.TOKEN }}'
+          token='${{ secrets.APPTOKEN }}'
           access='${{ secrets.ACCESS }}'
+          uids='${{ secrets.UIDS }}'
           python3 main.py ${user} ${passwd} ${open_get_weather} ${area} ${token} ${access}
