@@ -132,7 +132,7 @@ def login(user, password):
     for attempt in range(max_retries):
         try:
             # 增加一个小的随机延迟，避免看起来像机器人
-            time.sleep(random.randint(5, 15))
+            # time.sleep(random.randint(5, 15))
             
             res1 = requests.post(url1, data=data1, headers=headers_login, timeout=10)
 
@@ -248,7 +248,8 @@ def main(_user, _passwd, min_1, max_1):
             result = f"账号：{user[:3]}****{user[-4:]}\n修改步数失败，响应：{response.get('message', '未知错误')}\n"
     except requests.exceptions.RequestException as e:
         result = f"账号：{user[:3]}****{user[-4:]}\n提交步数时网络错误: {e}\n"
-    
+
+    print(response)
     print(result)
     return result
 
