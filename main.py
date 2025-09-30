@@ -106,20 +106,20 @@ def getBeijinTime():
         return
 
 # 虚拟ip地址
-def fake_ip():
-    return f"{223}.{random.randint(64, 117)}.{random.randint(0, 255)}.{random.randint(0, 255)}"
+# def fake_ip():
+#     return f"{223}.{random.randint(64, 117)}.{random.randint(0, 255)}.{random.randint(0, 255)}"
 
 # 登录函数（包含重试逻辑）
 def login(user, password):
     is_phone = bool(re.match(r'\d{11}', user))
-    fake_ip_addr = fake_ip()
-    print(f"为用户 {user} 创建虚拟ip地址：{fake_ip_addr}\n")
+    # fake_ip_addr = fake_ip()
+    # print(f"为用户 {user} 创建虚拟ip地址：{fake_ip_addr}\n")
 
     headers_login = {
         "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
         "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 14_7_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.2",
         "app_name": "com.xiaomi.hm.health",
-        "X-Forwarded-For": fake_ip_addr
+        # "X-Forwarded-For": fake_ip_addr
     }
 
     url1 = f"{CF_WORKER_URL}/api-user.huami.com/registrations/{user}/tokens"
@@ -242,14 +242,14 @@ def main(_user, _passwd, min_1, max_1):
 
     try:
         response = requests.post(url, data=data, headers=head, timeout=10).json()
-        if 'message' in response and response['message'].lower() == 'ok':
+        if 'message' in response and response['message'].lower() == 'success':
             result = f"账号：{user[:3]}****{user[-4:]}\n修改步数 {step} 成功！\n"
         else:
             result = f"账号：{user[:3]}****{user[-4:]}\n修改步数失败，响应：{response.get('message', '未知错误')}\n"
     except requests.exceptions.RequestException as e:
         result = f"账号：{user[:3]}****{user[-4:]}\n提交步数时网络错误: {e}\n"
 
-    print(response)
+    # print(response)
     print(result)
     return result
 
