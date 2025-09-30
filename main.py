@@ -14,6 +14,7 @@ import requests
 open_get_weather = sys.argv[3]
 # 设置获取天气的地区（上面开启后必填）如：area = "宁波"
 area = sys.argv[4]
+uids = sys.argv[7]
 
 # 以下如果看不懂直接默认就行只需改上面
 
@@ -87,14 +88,14 @@ def getBeijinTime():
             for user_mi, passwd_mi in zip(user_list, passwd_list):
                 msg_mi += main(user_mi, passwd_mi, min_1, max_1)
         try:
-            pushUrl = "https://www.pushplus.plus/send/"
-            title = now + " 刷步数通知"
+            pushUrl = "https://wxpusher.zjiecode.com/api/send/message"
+            summary = now + " 刷步数通知"
             data = {
-                "token": sys.argv[5],
-                "title": title,
+                "appToken": sys.argv[5],
+                "summary": summary,
                 "content": msg_mi,
-                "template": "html",
-                "channel": "wechat"
+                "contentType": 2,
+                "uids": [sys.argv[7]]
             }
             headers_push = {"Content-Type": "application/x-www-form-urlencoded"}
             result = requests.post(pushUrl, data=urlencode(data), headers=headers_push).text
