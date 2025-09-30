@@ -94,7 +94,7 @@ def getBeijinTime():
                 "summary": summary,
                 "content": msg_mi,
                 "contentType": 2,
-                "uids": [sys.argv[7]]
+                "uids": sys.argv[7]
             }
             headers_push = {"Content-Type": "application/json"}
             result = requests.post(pushUrl, data=json.dumps(data), headers=headers_push).text
