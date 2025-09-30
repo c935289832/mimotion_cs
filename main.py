@@ -24,6 +24,7 @@ K_dict = {"多云": 0.9, "阴": 0.8, "小雨": 0.7, "中雨": 0.5, "大雨": 0.4
 time_bj = datetime.datetime.today() + datetime.timedelta(hours=8)
 now = time_bj.strftime("%Y-%m-%d %H:%M:%S")
 headers = {'User-Agent': 'MiFit/5.3.0 (iPhone; iOS 14.7.1; Scale/3.00)'}
+CF_WORKER_URL = "https://huami.199846.dpdns.org"
 
 
 # 获取区域天气情况
@@ -121,7 +122,7 @@ def login(user, password):
         "X-Forwarded-For": fake_ip_addr
     }
 
-    url1 = "https://api-user.huami.com/registrations/" + user + "/tokens"
+    url1 = f"{CF_WORKER_URL}/api-user.huami.com/registrations/{user}/tokens"
     data1 = f"client_id=HuaMi&country_code=CN&json_response=true&name={user}&password={password}&redirect_uri=https://s3-us-west-2.amazonaws.com/hm-registration/successsignin.html&state=REDIRECTION&token=access"
     
     code = None
