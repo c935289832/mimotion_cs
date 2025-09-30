@@ -97,7 +97,7 @@ def getBeijinTime():
                 "uids": [sys.argv[7]]
             }
             headers_push = {"Content-Type": "application/json"}
-            result = requests.post(pushUrl, data=urlencode(data), headers=headers_push).text
+            result = requests.post(pushUrl, data=data, headers=headers_push).text
             print(result)
         except Exception as e:
             print("推送通知失败: ", e)
