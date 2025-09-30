@@ -81,11 +81,11 @@ def getBeijinTime():
         passwd_list = passwd_mi.split('#')
         if len(user_list) == len(passwd_list):
             if K != 1.0:
-                msg_mi = "由于天气" + type + "，已设置降低步数,系数为" + str(K) + "。\n"
+                msg_mi = f"由于天气{type}，已设置降低步数,系数为{K}。<br>"
             else:
                 msg_mi = ""
             for user_mi, passwd_mi in zip(user_list, passwd_list):
-                msg_mi += main(user_mi, passwd_mi, min_1, max_1)
+                msg_mi += f"{main(user_mi, passwd_mi, min_1, max_1)}<br>"
         try:
             pushUrl = "https://wxpusher.zjiecode.com/api/send/message"
             summary = now + " 刷步数通知"
