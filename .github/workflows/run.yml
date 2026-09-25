@@ -14,22 +14,26 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout codes
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Update system and install zsh
         run: |
           sudo -E apt-get -qq update
           sudo -E apt-get install zsh -y
           
       - name: 初始化Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
-          python-version: 3.8
+          python-version: '3.11'
           
       - name: 开始
+        env:
+          TOKEN_CACHE_KEY: ${{ secrets.TOKEN_CACHE_KEY }}
         run: |
-          pip3 install requests
+          pip3 install requests cryptography
           user='${{ secrets.USER }}'
           passwd='${{ secrets.PWD }}' 
           open_get_weather='${{ secrets.OPEN_GET_WEATHER }}'
@@ -38,3 +42,17 @@ jobs:
           access='${{ secrets.ACCESS }}'
           uids='${{ secrets.UIDS }}'
           python3 main.py ${user} ${passwd} ${open_get_weather} ${area} ${appToken} ${access} ${uids}
+
+      - name: 保存 token 缓存（加密后提交回仓库）
+        if: ${{ always() }}
+        run: |
+          if [ -n "$(git status --porcelain token_cache.bin)" ]; then
+            git config user.name github-actions
+            git config user.email github-actions@github.com
+            git add token_cache.bin
+            git commit -m "chore: update token cache"
+            git pull --rebase --autostash origin "${GITHUB_REF_NAME}" || true
+            git push || echo "缓存 push 失败（可能有并发提交），本次忽略"
+          else
+            echo "token 缓存无变化，跳过提交"
+          fi

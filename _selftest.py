@@ -20,3 +20,13 @@ if pool:
     print("\n=== 用假账号 + 池内第一个代理跑一遍 login()（期望 None,None，但能证明请求经代理到达小米）===")
     lt, uid = main.login("dummy@example.com", "wrongpass", pool[0])
     print("LOGIN_WIRE_RESULT:", lt, uid)
+
+print("\n=== token_cache 加解密自检（需 TOKEN_CACHE_KEY）===")
+import token_cache
+c = {}
+token_cache.put(c, "dummy@example.com", "LT123", "UID456")
+token_cache.save(c)
+c2 = token_cache.load()
+ent = token_cache.get(c2, "dummy@example.com")
+ok = bool(ent and ent.get("login_token") == "LT123" and ent.get("userid") == "UID456")
+print("TOKEN_CACHE_ROUNDTRIP:", "OK" if ok else "FAIL", ent)

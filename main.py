@@ -11,6 +11,7 @@ from urllib.parse import urlencode
 import requests
 
 import proxy_pool
+import token_cache
 
 # 开启根据地区天气情况降低步数（默认关闭）
 open_get_weather = sys.argv[3]
@@ -87,12 +88,14 @@ def getBeijinTime():
             except Exception as e:
                 print(f"[代理池] 构建失败，回退直连/Worker：{e}")
                 proxies_pool = []
+            token_cache_data = token_cache.load()
             if K != 1.0:
                 msg_mi = f"由于天气{type}，已设置降低步数,系数为{K}。<br>"
             else:
                 msg_mi = ""
             for user_mi, passwd_mi in zip(user_list, passwd_list):
-                msg_mi += f"{main(user_mi, passwd_mi, min_1, max_1, proxies_pool)}<br>"
+                msg_mi += f"{main(user_mi, passwd_mi, min_1, max_1, proxies_pool, token_cache_data)}<br>"
+            token_cache.save(token_cache_data)
         try:
             pushUrl = "https://wxpusher.zjiecode.com/api/send/message"
             summary = now + " 刷步数通知"
@@ -200,8 +203,19 @@ def login(user, password, proxy=None):
         print(f"------ 获取 Login Token 时发生网络错误: {e} ------")
         return None, None
 
+# 走代理池登录：分数最高的代理挨个试，成功即返回；都失败再回退直连/Worker
+def _login_via_pool(user, password, proxies_pool):
+    tried = list(proxies_pool or [])
+    random.shuffle(tried)
+    for _proxy in tried[:8]:
+        lt, uid = login(user, password, _proxy)
+        if lt and uid:
+            return lt, uid
+    return login(user, password, None)
+
+
 # 主函数
-def main(_user, _passwd, min_1, max_1, proxies_pool=None):
+def main(_user, _passwd, min_1, max_1, proxies_pool=None, cache=None):
     user = str(_user)
     password = str(_passwd)
     step = str(random.randint(min_1, max_1))
@@ -214,29 +228,36 @@ def main(_user, _passwd, min_1, max_1, proxies_pool=None):
         print("用户名或密码为空！")
         return "用户名或密码为空！\n"
 
-    # 依次用代理池里分数最高的代理直连小米登录，失败自动换下一个；都不行再回退直连/Worker
-    tried = list(proxies_pool or [])
-    random.shuffle(tried)
-    login_token = userid = None
-    for _proxy in tried[:8]:
-        login_token, userid = login(user, password, _proxy)
+    # 1) 先复用缓存的 login_token（避开被限流的登录接口），用 get_app_token 验证其是否仍有效
+    login_token = userid = app_token = None
+    ent = token_cache.get(cache, user) if cache is not None else None
+    if ent:
+        print("命中 token 缓存，尝试复用…")
+        app_token = get_app_token(ent["login_token"])
+        if app_token:
+            login_token, userid = ent["login_token"], ent["userid"]
+            print("token 缓存有效，跳过登录接口！")
+        else:
+            print("缓存 token 已失效，改走代理池重新登录…")
+
+    # 2) 缓存未命中/失效 → 走代理池登录，成功则写回缓存
+    if not app_token:
+        login_token, userid = _login_via_pool(user, password, proxies_pool)
         if login_token and userid:
-            break
-    if not (login_token and userid):
-        login_token, userid = login(user, password, None)
+            token_cache.put(cache, user, login_token, userid)
+            app_token = get_app_token(login_token)
+
     if not login_token or not userid:
         print("登录失败，跳过此用户！")
         return f"账号：{user[:3]}****{user[-4:]} 登录失败！\n"
+    if not app_token:
+        print("获取 App Token 失败！")
+        return f"账号：{user[:3]}****{user[-4:]} 获取App Token失败！\n"
 
     t = get_time()
     if not t:
         print("获取服务器时间戳失败！")
         return f"账号：{user[:3]}****{user[-4:]} 获取时间戳失败！\n"
-
-    app_token = get_app_token(login_token)
-    if not app_token:
-        print("获取 App Token 失败！")
-        return f"账号：{user[:3]}****{user[-4:]} 获取App Token失败！\n"
 
     today = time.strftime("%Y-%m-%d")
 
