@@ -83,11 +83,7 @@ def getBeijinTime():
         user_list = user_mi.split('#')
         passwd_list = passwd_mi.split('#')
         if len(user_list) == len(passwd_list):
-            try:
-                proxies_pool = proxy_pool.build_pool(top_n=120)
-            except Exception as e:
-                print(f"[代理池] 构建失败，回退直连/Worker：{e}")
-                proxies_pool = []
+            proxies_pool = LazyPool(top_n=120)  # 懒加载：只有真需要登录时才构建代理池
             token_cache_data = token_cache.load()
             if K != 1.0:
                 msg_mi = f"由于天气{type}，已设置降低步数,系数为{K}。<br>"
@@ -203,9 +199,29 @@ def login(user, password, proxy=None):
         print(f"------ 获取 Login Token 时发生网络错误: {e} ------")
         return None, None
 
+# 懒加载代理池：本次运行内首次真正需要登录时才构建一次并复用；全部命中缓存则永不构建
+class LazyPool:
+    def __init__(self, top_n=120):
+        self._built = False
+        self._pool = []
+        self._top_n = top_n
+
+    def get(self):
+        if not self._built:
+            self._built = True
+            print("[代理池] 有账号需要重新登录，开始构建代理池…")
+            try:
+                self._pool = proxy_pool.build_pool(top_n=self._top_n)
+            except Exception as e:
+                print(f"[代理池] 构建失败，回退直连/Worker：{e}")
+                self._pool = []
+        return self._pool
+
+
 # 走代理池登录：分数最高的代理挨个试，成功即返回；都失败再回退直连/Worker
-def _login_via_pool(user, password, proxies_pool):
-    tried = list(proxies_pool or [])
+def _login_via_pool(user, password, lazy_pool):
+    pool = lazy_pool.get() if lazy_pool is not None else []
+    tried = list(pool)
     random.shuffle(tried)
     for _proxy in tried[:8]:
         lt, uid = login(user, password, _proxy)

@@ -30,3 +30,7 @@ c2 = token_cache.load()
 ent = token_cache.get(c2, "dummy@example.com")
 ok = bool(ent and ent.get("login_token") == "LT123" and ent.get("userid") == "UID456")
 print("TOKEN_CACHE_ROUNDTRIP:", "OK" if ok else "FAIL", ent)
+
+print("\n=== 懒加载自检（创建时不应触发构建）===")
+lp = main.LazyPool()
+print("LAZY_NOT_BUILT_ON_INIT:", "OK" if lp._built is False and lp._pool == [] else "FAIL")
