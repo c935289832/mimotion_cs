@@ -112,6 +112,17 @@ def xiaomi_reachable(proxy_url, timeout=8):
         return False
 
 
+def exit_ip(proxy_url, timeout=6):
+    """通过该代理查询实际出口 IP（best-effort，失败返回 '?'）。"""
+    import requests
+    try:
+        return requests.get("https://api.ipify.org",
+                            proxies={"http": proxy_url, "https": proxy_url},
+                            timeout=timeout).text.strip()
+    except Exception:
+        return "?"
+
+
 def build_pool(top_n=120, verify=True, max_workers=30, date=None, log=print):
     """
     产出"小米可用"的 http 代理 URL 列表（按 checker 分数从高到低，保留能连通小米的）。
