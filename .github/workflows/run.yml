@@ -5,11 +5,17 @@ on:
   #  branches: [ main ]
   #pull_request:
   #  branches: [ main ]
-  schedule:
-    - cron: '6 1,4,7,10,13 * * *'
+  # 定时改由 cron-job.org 通过 workflow_dispatch 触发，不再用 GitHub 自带 schedule（常延迟）
+  #schedule:
+  #  - cron: '6 1,4,7,10,13 * * *'
   watch:
     types: started
   workflow_dispatch:
+    inputs:
+      random_delay:
+        description: '触发后随机延迟0~59分钟再执行（cron-job.org 触发建议保持 true；手动测试可填 false）'
+        default: 'true'
+        required: false
 
 jobs:
   build:
@@ -17,6 +23,11 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: 随机延迟（错开提交时间）
+        run: |
+          if [ "${{ github.event.inputs.random_delay }}" != "false" ]; then
+            D=$((RANDOM % 3540)); echo "随机延迟 ${D}s 后执行…"; sleep "$D"
+          fi
       - name: Checkout codes
         uses: actions/checkout@v4
       - name: Update system and install zsh
