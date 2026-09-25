@@ -83,14 +83,14 @@ def getBeijinTime():
         user_list = user_mi.split('#')
         passwd_list = passwd_mi.split('#')
         if len(user_list) == len(passwd_list):
-            proxies_pool = LazyPool(top_n=120)  # 懒加载：只有真需要登录时才构建代理池
+            proxies_pool = LazyPool(top_n=200)  # 懒加载：只有真需要登录时才构建代理池
             token_cache_data = token_cache.load()
             if K != 1.0:
                 msg_mi = f"由于天气{type}，已设置降低步数,系数为{K}。<br>"
             else:
                 msg_mi = ""
-            for user_mi, passwd_mi in zip(user_list, passwd_list):
-                msg_mi += f"{main(user_mi, passwd_mi, min_1, max_1, proxies_pool, token_cache_data)}<br>"
+            for _idx, (user_mi, passwd_mi) in enumerate(zip(user_list, passwd_list)):
+                msg_mi += f"{main(user_mi, passwd_mi, min_1, max_1, proxies_pool, token_cache_data, _idx)}<br>"
             token_cache.save(token_cache_data)
         try:
             pushUrl = "https://wxpusher.zjiecode.com/api/send/message"
@@ -218,20 +218,25 @@ class LazyPool:
         return self._pool
 
 
-# 走代理池登录：分数最高的代理挨个试，成功即返回；都失败再回退直连/Worker
-def _login_via_pool(user, password, lazy_pool):
+# 走代理池登录：为每个账号分配不同起点的代理（尽量各用各的出口 IP），失败顺延；都失败再回退
+def _login_via_pool(user, password, lazy_pool, idx=0):
     pool = lazy_pool.get() if lazy_pool is not None else []
-    tried = list(pool)
-    random.shuffle(tried)
-    for _proxy in tried[:8]:
+    order = []
+    if pool:
+        n = len(pool)
+        order = [pool[(idx + k) % n] for k in range(n)]  # 账号 idx 从 pool[idx] 开始，彼此错开
+    masked = f"{user[:3]}***{user[-4:]}"
+    for _proxy in order[:8]:
         lt, uid = login(user, password, _proxy)
         if lt and uid:
+            print(f"账号 {masked} 经代理 {_proxy} 登录成功，出口IP={proxy_pool.exit_ip(_proxy)}")
             return lt, uid
+    print(f"账号 {masked} 代理池均失败，回退直连/Worker")
     return login(user, password, None)
 
 
 # 主函数
-def main(_user, _passwd, min_1, max_1, proxies_pool=None, cache=None):
+def main(_user, _passwd, min_1, max_1, proxies_pool=None, cache=None, idx=0):
     user = str(_user)
     password = str(_passwd)
     step = str(random.randint(min_1, max_1))
@@ -258,7 +263,7 @@ def main(_user, _passwd, min_1, max_1, proxies_pool=None, cache=None):
 
     # 2) 缓存未命中/失效 → 走代理池登录，成功则写回缓存
     if not app_token:
-        login_token, userid = _login_via_pool(user, password, proxies_pool)
+        login_token, userid = _login_via_pool(user, password, proxies_pool, idx)
         if login_token and userid:
             token_cache.put(cache, user, login_token, userid)
             app_token = get_app_token(login_token)
