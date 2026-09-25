@@ -10,6 +10,9 @@ from urllib.parse import urlencode
 
 import requests
 
+import proxy_pool
+import token_cache
+
 # 开启根据地区天气情况降低步数（默认关闭）
 open_get_weather = sys.argv[3]
 # 设置获取天气的地区（上面开启后必填）如：area = "宁波"
@@ -80,12 +83,15 @@ def getBeijinTime():
         user_list = user_mi.split('#')
         passwd_list = passwd_mi.split('#')
         if len(user_list) == len(passwd_list):
+            proxies_pool = LazyPool(top_n=120)  # 懒加载：只有真需要登录时才构建代理池
+            token_cache_data = token_cache.load()
             if K != 1.0:
                 msg_mi = f"由于天气{type}，已设置降低步数,系数为{K}。<br>"
             else:
                 msg_mi = ""
             for user_mi, passwd_mi in zip(user_list, passwd_list):
-                msg_mi += f"{main(user_mi, passwd_mi, min_1, max_1)}<br>"
+                msg_mi += f"{main(user_mi, passwd_mi, min_1, max_1, proxies_pool, token_cache_data)}<br>"
+            token_cache.save(token_cache_data)
         try:
             pushUrl = "https://wxpusher.zjiecode.com/api/send/message"
             summary = now + " 刷步数通知"
@@ -111,8 +117,9 @@ def getBeijinTime():
 #     return f"{223}.{random.randint(64, 117)}.{random.randint(0, 255)}.{random.randint(0, 255)}"
 
 # 登录函数（包含重试逻辑）
-def login(user, password):
+def login(user, password, proxy=None):
     is_phone = bool(re.match(r'\d{11}', user))
+    proxies = {"http": proxy, "https": proxy} if proxy else None
     # fake_ip_addr = fake_ip()
     # print(f"为用户 {user} 创建虚拟ip地址：{fake_ip_addr}\n")
 
@@ -123,11 +130,16 @@ def login(user, password):
         # "X-Forwarded-For": fake_ip_addr
     }
 
-    url1 = f"{CF_WORKER_URL}/api-user.huami.com/registrations/{user}/tokens"
+    # 有代理则走真实域名直连小米；无代理回退 CF Worker
+    if proxy:
+        url1 = f"https://api-user.huami.com/registrations/{user}/tokens"
+    else:
+        url1 = f"{CF_WORKER_URL}/api-user.huami.com/registrations/{user}/tokens"
     data1 = f"client_id=HuaMi&country_code=CN&json_response=true&name={user}&password={password}&redirect_uri=https://s3-us-west-2.amazonaws.com/hm-registration/successsignin.html&state=REDIRECTION&token=access"
     
     code = None
-    max_retries = 3
+    # 走代理池时每个代理只试 1 次，失败交给外层换下一个代理；无代理时保留原重试
+    max_retries = 1 if proxy else 3
     base_delay = 30  # 初始延迟30秒
 
     for attempt in range(max_retries):
@@ -135,7 +147,7 @@ def login(user, password):
             # 增加一个小的随机延迟，避免看起来像机器人
             # time.sleep(random.randint(5, 15))
             
-            res1 = requests.post(url1, data=data1, headers=headers_login, timeout=10)
+            res1 = requests.post(url1, data=data1, headers=headers_login, proxies=proxies, timeout=10)
 
             if res1.status_code == 200:
                 res1_json = res1.json()
@@ -174,7 +186,7 @@ def login(user, password):
         data2 = { "allow_registration": "false", "app_name": "com.xiaomi.hm.health", "app_version": "6.3.5", "code": f"{code}", "country_code": "CN", "device_id": "2C8B4939-0CCD-4E94-8CBA-CB8EA6E613A1", "device_model": "phone", "dn": "api-user.huami.com%2Capi-mifit.huami.com%2Capp-analytics.huami.com", "grant_type": "access_token", "lang": "zh_CN", "os_version": "1.5.0", "source": "com.xiaomi.hm.health", "third_name": "email" }
     
     try:
-        r2 = requests.post(url2, data=data2, headers=headers_login).json()
+        r2 = requests.post(url2, data=data2, headers=headers_login, proxies=proxies).json()
         if "token_info" not in r2:
             print(f"------ Login Token 获取失败，响应: {r2} ------")
             return None, None
@@ -187,8 +199,39 @@ def login(user, password):
         print(f"------ 获取 Login Token 时发生网络错误: {e} ------")
         return None, None
 
+# 懒加载代理池：本次运行内首次真正需要登录时才构建一次并复用；全部命中缓存则永不构建
+class LazyPool:
+    def __init__(self, top_n=120):
+        self._built = False
+        self._pool = []
+        self._top_n = top_n
+
+    def get(self):
+        if not self._built:
+            self._built = True
+            print("[代理池] 有账号需要重新登录，开始构建代理池…")
+            try:
+                self._pool = proxy_pool.build_pool(top_n=self._top_n)
+            except Exception as e:
+                print(f"[代理池] 构建失败，回退直连/Worker：{e}")
+                self._pool = []
+        return self._pool
+
+
+# 走代理池登录：分数最高的代理挨个试，成功即返回；都失败再回退直连/Worker
+def _login_via_pool(user, password, lazy_pool):
+    pool = lazy_pool.get() if lazy_pool is not None else []
+    tried = list(pool)
+    random.shuffle(tried)
+    for _proxy in tried[:8]:
+        lt, uid = login(user, password, _proxy)
+        if lt and uid:
+            return lt, uid
+    return login(user, password, None)
+
+
 # 主函数
-def main(_user, _passwd, min_1, max_1):
+def main(_user, _passwd, min_1, max_1, proxies_pool=None, cache=None):
     user = str(_user)
     password = str(_passwd)
     step = str(random.randint(min_1, max_1))
@@ -201,20 +244,36 @@ def main(_user, _passwd, min_1, max_1):
         print("用户名或密码为空！")
         return "用户名或密码为空！\n"
 
-    login_token, userid = login(user, password)
+    # 1) 先复用缓存的 login_token（避开被限流的登录接口），用 get_app_token 验证其是否仍有效
+    login_token = userid = app_token = None
+    ent = token_cache.get(cache, user) if cache is not None else None
+    if ent:
+        print("命中 token 缓存，尝试复用…")
+        app_token = get_app_token(ent["login_token"])
+        if app_token:
+            login_token, userid = ent["login_token"], ent["userid"]
+            print("token 缓存有效，跳过登录接口！")
+        else:
+            print("缓存 token 已失效，改走代理池重新登录…")
+
+    # 2) 缓存未命中/失效 → 走代理池登录，成功则写回缓存
+    if not app_token:
+        login_token, userid = _login_via_pool(user, password, proxies_pool)
+        if login_token and userid:
+            token_cache.put(cache, user, login_token, userid)
+            app_token = get_app_token(login_token)
+
     if not login_token or not userid:
         print("登录失败，跳过此用户！")
         return f"账号：{user[:3]}****{user[-4:]} 登录失败！\n"
+    if not app_token:
+        print("获取 App Token 失败！")
+        return f"账号：{user[:3]}****{user[-4:]} 获取App Token失败！\n"
 
     t = get_time()
     if not t:
         print("获取服务器时间戳失败！")
         return f"账号：{user[:3]}****{user[-4:]} 获取时间戳失败！\n"
-
-    app_token = get_app_token(login_token)
-    if not app_token:
-        print("获取 App Token 失败！")
-        return f"账号：{user[:3]}****{user[-4:]} 获取App Token失败！\n"
 
     today = time.strftime("%Y-%m-%d")
 
