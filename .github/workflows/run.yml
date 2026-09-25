@@ -33,7 +33,7 @@ jobs:
         env:
           TOKEN_CACHE_KEY: ${{ secrets.TOKEN_CACHE_KEY }}
         run: |
-          pip3 install requests cryptography
+          pip3 install requests cryptography pysocks
           user='${{ secrets.USER }}'
           passwd='${{ secrets.PWD }}' 
           open_get_weather='${{ secrets.OPEN_GET_WEATHER }}'
