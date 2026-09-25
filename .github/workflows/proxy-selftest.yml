@@ -1,0 +1,19 @@
+name: Proxy Pool Selftest
+on:
+  push:
+    branches: [proxy-pool-test]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  selftest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Install deps
+        run: pip install requests
+      - name: Run selftest (build pool + login wiring, no real creds)
+        run: python _selftest.py
