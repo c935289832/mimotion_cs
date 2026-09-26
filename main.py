@@ -305,14 +305,22 @@ def main(_user, _passwd, min_1, max_1, proxies_pool=None, cache=None, idx=0):
 
     data = f'userid={userid}&last_sync_data_time=1597306380&device_type=0&last_deviceid=DA932FFFFE8816E7&data_json={data_json}'
 
-    try:
-        response = requests.post(url, data=data, headers=head, timeout=10).json()
-        if 'message' in response and response['message'].lower() == 'success':
-            result = f"账号：{user[:3]}****{user[-4:]}\n修改步数 {step} 成功！\n"
-        else:
-            result = f"账号：{user[:3]}****{user[-4:]}\n修改步数失败，响应：{response.get('message', '未知错误')}\n"
-    except requests.exceptions.RequestException as e:
-        result = f"账号：{user[:3]}****{user[-4:]}\n提交步数时网络错误: {e}\n"
+    # 该接口直连国内(api-mifit-cn.huami.com)，从美国 runner 常慢/超时 → 放宽超时 + 重试
+    result = f"账号：{user[:3]}****{user[-4:]}\n提交步数失败（重试耗尽）\n"
+    for attempt in range(3):
+        try:
+            response = requests.post(url, data=data, headers=head, timeout=20).json()
+            if 'message' in response and response['message'].lower() == 'success':
+                result = f"账号：{user[:3]}****{user[-4:]}\n修改步数 {step} 成功！\n"
+            else:
+                result = f"账号：{user[:3]}****{user[-4:]}\n修改步数失败，响应：{response.get('message', '未知错误')}\n"
+            break
+        except requests.exceptions.RequestException as e:
+            print(f"------ 尝试 {attempt + 1}/3 提交步数网络错误: {e} ------")
+            if attempt < 2:
+                time.sleep(2)
+                continue
+            result = f"账号：{user[:3]}****{user[-4:]}\n提交步数时网络错误: {e}\n"
 
     # print(response)
     print(result)
@@ -337,18 +345,20 @@ def get_time():
 # 获取app_token
 def get_app_token(login_token):
     url = f"https://account-cn.huami.com/v1/client/app_tokens?app_name=com.xiaomi.hm.health&dn=api-user.huami.com%2Capi-mifit.huami.com%2Capp-analytics.huami.com&login_token={login_token}"
-    try:
-        response = requests.get(url, headers=headers, timeout=10).json()
-        if 'token_info' in response and 'app_token' in response['token_info']:
-            app_token = response['token_info']['app_token']
-            print("App Token 获取成功！")
-            return app_token
-        else:
+    # 该接口直连国内(account-cn.huami.com)，从美国 runner 常慢/超时 → 放宽超时 + 重试
+    for attempt in range(3):
+        try:
+            response = requests.get(url, headers=headers, timeout=20).json()
+            if 'token_info' in response and 'app_token' in response['token_info']:
+                print("App Token 获取成功！")
+                return response['token_info']['app_token']
             print(f"App Token 获取失败，响应: {response}")
             return None
-    except requests.exceptions.RequestException as e:
-        print(f"获取 App Token 时网络错误: {e}")
-        return None
+        except requests.exceptions.RequestException as e:
+            print(f"------ 尝试 {attempt + 1}/3 获取 App Token 网络错误: {e} ------")
+            if attempt < 2:
+                time.sleep(2)
+    return None
 
 
 if __name__ == "__main__":
