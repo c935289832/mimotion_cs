@@ -186,7 +186,7 @@ def login(user, password, proxy=None):
         data2 = { "allow_registration": "false", "app_name": "com.xiaomi.hm.health", "app_version": "6.3.5", "code": f"{code}", "country_code": "CN", "device_id": "2C8B4939-0CCD-4E94-8CBA-CB8EA6E613A1", "device_model": "phone", "dn": "api-user.huami.com%2Capi-mifit.huami.com%2Capp-analytics.huami.com", "grant_type": "access_token", "lang": "zh_CN", "os_version": "1.5.0", "source": "com.xiaomi.hm.health", "third_name": "email" }
     
     try:
-        r2 = requests.post(url2, data=data2, headers=headers_login, proxies=proxies).json()
+        r2 = requests.post(url2, data=data2, headers=headers_login, proxies=proxies, timeout=10).json()
         if "token_info" not in r2:
             print(f"------ Login Token 获取失败，响应: {r2} ------")
             return None, None
