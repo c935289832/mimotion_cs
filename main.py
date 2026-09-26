@@ -39,7 +39,7 @@ def getWeather():
         global K, type
         url = 'http://wthrcdn.etouch.cn/weather_mini?city=' + area
         hea = {'User-Agent': 'Mozilla/5.0'}
-        r = requests.get(url=url, headers=hea)
+        r = requests.get(url=url, headers=hea, timeout=10)
         if r.status_code == 200:
             result = r.text
             res = json.loads(result)
@@ -62,7 +62,7 @@ def getBeijinTime():
     url = r'https://apps.game.qq.com/CommArticle/app/reg/gdate.php'
     if open_get_weather == "True":
         getWeather()
-    r = requests.get(url=url, headers=hea)
+    r = requests.get(url=url, headers=hea, timeout=15)
     if r.status_code == 200:
         result = r.text
         pattern = re.compile('\\d{4}-\\d{2}-\\d{2} (\\d{2}):\\d{2}:\\d{2}')
@@ -104,7 +104,7 @@ def getBeijinTime():
                 "uids": uids_list
             }
             headers_push = {"Content-Type": "application/json"}
-            result = requests.post(pushUrl, data=json.dumps(data), headers=headers_push).text
+            result = requests.post(pushUrl, data=json.dumps(data), headers=headers_push, timeout=15).text
             print(result)
         except Exception as e:
             print("推送通知失败: ", e)
@@ -331,16 +331,18 @@ def main(_user, _passwd, min_1, max_1, proxies_pool=None, cache=None, idx=0):
 def get_time():
     url = 'https://api.pinduoduo.com/api/server/_stm'
     headers = {"User-Agent": "Mozilla/5.0"}
-    try:
-        response = requests.get(url, headers=headers, timeout=10)
-        if response.status_code == 200:
-            return response.json()['server_time']
-        else:
+    for attempt in range(3):
+        try:
+            response = requests.get(url, headers=headers, timeout=15)
+            if response.status_code == 200:
+                return response.json()['server_time']
             print(f"请求时间戳失败，状态码：{response.status_code}")
             return None
-    except requests.exceptions.RequestException as e:
-        print(f"获取时间戳时网络错误: {e}")
-        return None
+        except requests.exceptions.RequestException as e:
+            print(f"------ 尝试 {attempt + 1}/3 获取时间戳网络错误: {e} ------")
+            if attempt < 2:
+                time.sleep(2)
+    return None
 
 # 获取app_token
 def get_app_token(login_token):
